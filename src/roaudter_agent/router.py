@@ -1,7 +1,7 @@
 from __future__ import annotations
 import time
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from typing import Optional
 
 from roaudter_agent.contracts import TaskEnvelope, ResultEnvelope
 from roaudter_agent.policy import RouterPolicy
@@ -17,10 +17,11 @@ class RouterAgent:
         start = time.time()
         chain = self.policy.select_chain(task, self.providers)
 
-        last_err: Optional[str] = None
+        last_err: Optional[dict] = None
+
         for p in chain:
             try:
-                out: Any = p.adapter.generate(task)
+                out = p.adapter.generate(task)
                 latency_ms = int((time.time() - start) * 1000)
                 return ResultEnvelope(
                     task_id=task.task_id,
@@ -30,7 +31,7 @@ class RouterAgent:
                     result=out,
                 )
             except ProviderError as e:
-                last_err = f"{p.adapter.name}: {e}"
+                last_err = e.to_dict(provider=p.adapter.name)
                 continue
 
         latency_ms = int((time.time() - start) * 1000)
@@ -39,5 +40,12 @@ class RouterAgent:
             status="error",
             provider_used=None,
             latency_ms=latency_ms,
-            error=last_err or "no healthy providers",
+            error=last_err or {
+                "provider": None,
+                "code": "no_healthy_providers",
+                "http_status": None,
+                "retryable": False,
+                "message": "no healthy providers",
+                "meta": {},
+            },
         )

@@ -22,4 +22,4 @@ class ResultEnvelope:
     latency_ms: Optional[int] = None
     tokens: Optional[dict[str, int]] = None
     result: Optional[Any] = None
-    error: Optional[str] = None
+    error: Optional[dict[str, Any]] = None

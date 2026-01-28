@@ -11,7 +11,7 @@ class BoomProvider:
     name: str = "ollama"
     def healthcheck(self) -> bool: return True
     def generate(self, task: TaskEnvelope):
-        raise ProviderError("boom")
+        raise ProviderError("boom", code="boom", retryable=False)
 
 
 @dataclass
