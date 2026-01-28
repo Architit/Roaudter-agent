@@ -28,12 +28,21 @@ class OllamaAdapter:
         if not msg:
             raise ProviderError("empty payload.msg/text", code="bad_request", retryable=False)
 
-        model = (
+        requested_model = (
             task.constraints.get("model")
             or task.payload.get("model")
             or task.payload.get("llm_model")
-            or self.default_model
         )
+
+        # Provider-aware model selection:
+        # - local adapter ("ollama") must NOT use *:cloud requests
+        # - cloud adapter ("ollama_cloud") should prefer *:cloud requests
+        if self.name == "ollama" and requested_model and str(requested_model).endswith(":cloud"):
+            model = self.default_model
+        elif self.name == "ollama_cloud" and requested_model and not str(requested_model).endswith(":cloud"):
+            model = self.default_model
+        else:
+            model = requested_model or self.default_model
 
         body = {
             "model": model,
