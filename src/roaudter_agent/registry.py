@@ -7,6 +7,7 @@ from roaudter_agent.router import RouterAgent
 from roaudter_agent.providers.base import ProviderState
 from roaudter_agent.providers.ollama import OllamaAdapter
 from roaudter_agent.providers.openai import OpenAIAdapter
+from roaudter_agent.providers.gemini import GeminiAdapter
 
 
 @dataclass(slots=True)
@@ -16,22 +17,18 @@ class ProviderConfig:
     ollama_cloud_model: str = "glm-4.7:cloud"
 
     openai_model: str = "gpt-4o-mini"
+    gemini_model: str = "gemini-1.5-flash"
 
 
 def build_default_router(cfg: ProviderConfig | None = None) -> RouterAgent:
     cfg = cfg or ProviderConfig()
 
     providers: List[ProviderState] = [
-        # OpenAI (если нет ключа, healthcheck вернет False и монитор отфильтрует)
+        ProviderState(GeminiAdapter(default_model=cfg.gemini_model)),
         ProviderState(OpenAIAdapter(default_model=cfg.openai_model)),
-
-        # Локальная Ollama (всегда доступна в твоей схеме)
         ProviderState(OllamaAdapter(name="ollama", base_url=cfg.ollama_base_url, default_model=cfg.ollama_local_model)),
-
-        # Cloud Ollama (опционально)
         ProviderState(OllamaAdapter(name="ollama_cloud", base_url=cfg.ollama_base_url, default_model=cfg.ollama_cloud_model)),
     ]
 
-    # По умолчанию: openai → local ollama → cloud
-    policy = RouterPolicy(default_chain=["openai", "ollama", "ollama_cloud"])
+    policy = RouterPolicy(default_chain=["gemini", "openai", "ollama", "ollama_cloud"])
     return RouterAgent(policy=policy, providers=providers)
