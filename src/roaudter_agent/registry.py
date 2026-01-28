@@ -8,6 +8,7 @@ from roaudter_agent.providers.base import ProviderState
 from roaudter_agent.providers.ollama import OllamaAdapter
 from roaudter_agent.providers.openai import OpenAIAdapter
 from roaudter_agent.providers.gemini import GeminiAdapter
+from roaudter_agent.providers.claude import ClaudeAdapter
 
 
 @dataclass(slots=True)
@@ -18,17 +19,19 @@ class ProviderConfig:
 
     openai_model: str = "gpt-4o-mini"
     gemini_model: str = "gemini-1.5-flash"
+    claude_model: str = "claude-3-5-haiku-latest"
 
 
 def build_default_router(cfg: ProviderConfig | None = None) -> RouterAgent:
     cfg = cfg or ProviderConfig()
 
     providers: List[ProviderState] = [
+        ProviderState(ClaudeAdapter(default_model=cfg.claude_model)),
         ProviderState(GeminiAdapter(default_model=cfg.gemini_model)),
         ProviderState(OpenAIAdapter(default_model=cfg.openai_model)),
         ProviderState(OllamaAdapter(name="ollama", base_url=cfg.ollama_base_url, default_model=cfg.ollama_local_model)),
         ProviderState(OllamaAdapter(name="ollama_cloud", base_url=cfg.ollama_base_url, default_model=cfg.ollama_cloud_model)),
     ]
 
-    policy = RouterPolicy(default_chain=["gemini", "openai", "ollama", "ollama_cloud"])
+    policy = RouterPolicy(default_chain=["claude", "gemini", "openai", "ollama", "ollama_cloud"])
     return RouterAgent(policy=policy, providers=providers)
