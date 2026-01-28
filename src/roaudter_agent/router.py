@@ -1,9 +1,10 @@
 from __future__ import annotations
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from roaudter_agent.contracts import TaskEnvelope, ResultEnvelope
+from roaudter_agent.health import HealthMonitor
 from roaudter_agent.policy import RouterPolicy
 from roaudter_agent.providers.base import ProviderError, ProviderState
 
@@ -12,10 +13,14 @@ from roaudter_agent.providers.base import ProviderError, ProviderState
 class RouterAgent:
     policy: RouterPolicy
     providers: list[ProviderState]
+    health: HealthMonitor = field(default_factory=HealthMonitor)
 
     def route(self, task: TaskEnvelope) -> ResultEnvelope:
         start = time.time()
-        chain = self.policy.select_chain(task, self.providers)
+
+        # health filter with TTL/cooldown
+        healthy_providers = [p for p in self.providers if p.healthy and self.health.is_healthy(p)]
+        chain = self.policy.select_chain(task, healthy_providers)
 
         last_err: Optional[dict] = None
 
