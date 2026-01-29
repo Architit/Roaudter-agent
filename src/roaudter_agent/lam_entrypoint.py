@@ -31,6 +31,7 @@ class RoaudterComAgent:
             "provider_used": res.provider_used,
             "latency_ms": res.latency_ms,
             "tokens": res.tokens,
+            "usage": res.usage,
             "result": res.result,
             "error": res.error,
         }

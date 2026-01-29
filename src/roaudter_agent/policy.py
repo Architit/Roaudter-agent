@@ -14,9 +14,14 @@ def _requested_model(task: TaskEnvelope) -> str | None:
     )
 
 
-def _hint(task: TaskEnvelope) -> Optional[str]:
+def _parse_hint(task: TaskEnvelope) -> tuple[Optional[str], bool]:
     # allow hint to come either from TaskEnvelope or payload
-    return (task.provider_hint or task.payload.get("provider_hint") or "").strip().lower() or None
+    raw = (task.provider_hint or task.payload.get("provider_hint") or "").strip().lower()
+    if not raw:
+        return None, False
+    if raw.endswith("!"):
+        return raw[:-1], True
+    return raw, False
 
 
 PROFILE_CHAINS: dict[str, list[str]] = {
@@ -40,6 +45,7 @@ class RouterPolicy:
     Policy v2 + profiles:
     - provider_hint can be:
         - exact provider name (e.g., "openai")
+        - strict exact provider name with '!': (e.g., "openai!") => NO fallback; error if unavailable
         - profile name: local_only/cheap/best/fast
     - model=:cloud => prefer ollama_cloud then ollama (but profiles can override via order)
     - health filtering happens outside (HealthMonitor)
@@ -54,12 +60,15 @@ class RouterPolicy:
         chain: List[str] = []
 
         # 1) hint/profile first
-        hint = _hint(task)
+        hint, strict = _parse_hint(task)
         if hint:
             if hint in PROFILE_CHAINS:
                 chain += PROFILE_CHAINS[hint]
             else:
-                # treat as explicit provider name
+                # explicit provider name
+                if strict:
+                    # STRICT: no fallback; only this provider (or error if unavailable)
+                    return [by_name[hint]] if hint in by_name else []
                 chain.append(hint)
 
         # 2) model-driven ordering (cloud request -> cloud then local)

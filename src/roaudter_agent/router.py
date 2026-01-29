@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -15,6 +16,16 @@ class RouterAgent:
     providers: list[ProviderState]
     health: HealthMonitor = field(default_factory=HealthMonitor)
 
+    # retry/backoff budget (v1)
+# - retries only when ProviderError.retryable==True AND http_status in {None, 429, >=500}
+# - bounded by retry_max_attempts and retry_budget_ms
+# - falls back to next provider after exhaustion
+# defaults are tiny to keep tests fast / WSL-friendly
+    retry_max_attempts: int = 3
+    retry_budget_ms: int = 800
+    retry_base_backoff_ms: int = 10
+    retry_max_backoff_ms: int = 80
+
     def route(self, task: TaskEnvelope) -> ResultEnvelope:
         start = time.time()
 
@@ -25,19 +36,72 @@ class RouterAgent:
         last_err: Optional[dict] = None
 
         for p in chain:
-            try:
-                out = p.adapter.generate(task)
-                latency_ms = int((time.time() - start) * 1000)
-                return ResultEnvelope(
-                    task_id=task.task_id,
-                    status="ok",
-                    provider_used=p.adapter.name,
-                    latency_ms=latency_ms,
-                    result=out,
-                )
-            except ProviderError as e:
-                last_err = e.to_dict(provider=p.adapter.name)
-                continue
+            attempt = 0
+
+            while True:
+                try:
+                    out = p.adapter.generate(task)
+
+                    # unified usage/tokens: lift provider-native usage to envelope level
+                    usage = out.get("usage") if isinstance(out, dict) else None
+                    if not isinstance(usage, dict):
+                        usage = None
+
+                    tokens = None
+                    if usage:
+                        tokens = (
+                            usage.get("total_tokens")
+                            or usage.get("total")
+                            or usage.get("tokens")
+                        )
+                        if tokens is None:
+                            pt = usage.get("prompt_tokens")
+                            ct = usage.get("completion_tokens")
+                            if isinstance(pt, int) and isinstance(ct, int):
+                                tokens = pt + ct
+
+                    latency_ms = int((time.time() - start) * 1000)
+                    return ResultEnvelope(
+                        task_id=task.task_id,
+                        status="ok",
+                        provider_used=p.adapter.name,
+                        latency_ms=latency_ms,
+                        tokens=tokens,
+                        usage=usage,
+                        result=out,
+                    )
+
+                except ProviderError as e:
+                    last_err = e.to_dict(provider=p.adapter.name)
+
+                    # retry only if explicitly retryable AND status is transient
+                    status = e.http_status
+                    transient = (status is None) or (status == 429) or (isinstance(status, int) and status >= 500)
+                    if (not e.retryable) or (not transient):
+                        break
+
+                    attempt += 1
+                    if attempt >= self.retry_max_attempts:
+                        break
+
+                    elapsed_ms = int((time.time() - start) * 1000)
+                    if elapsed_ms >= self.retry_budget_ms:
+                        break
+
+                    # small exponential backoff (tiny for fast tests)
+                    backoff_ms = min(
+                        self.retry_base_backoff_ms * (2 ** (attempt - 1)),
+                        self.retry_max_backoff_ms,
+                    )
+                    remaining_ms = self.retry_budget_ms - elapsed_ms
+                    if remaining_ms <= 0:
+                        break
+
+                    time.sleep(min(backoff_ms, remaining_ms) / 1000.0)
+                    continue
+
+            # exhausted this provider -> try next provider in chain
+            continue
 
         latency_ms = int((time.time() - start) * 1000)
         return ResultEnvelope(

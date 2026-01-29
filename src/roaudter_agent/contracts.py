@@ -20,6 +20,7 @@ class ResultEnvelope:
     status: str  # "ok" | "error"
     provider_used: Optional[str] = None
     latency_ms: Optional[int] = None
-    tokens: Optional[dict[str, int]] = None
+    tokens: int | None = None
+    usage: dict | None = None
     result: Optional[Any] = None
     error: Optional[dict[str, Any]] = None
