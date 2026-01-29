@@ -69,21 +69,38 @@ class RoaudterComAgent:
                 "errors": res.errors,
                 "tokens": res.tokens,
                 "usage": res.usage,
-            "metrics": {
-                "provider_used": res.provider_used,
-                "latency_ms": res.latency_ms,
-                "attempts": res.attempts,
-                "selected_chain": res.selected_chain,
-                "tokens": res.tokens,
-                "usage": res.usage,
-            },
+                "metrics": {
+                    "provider_used": res.provider_used,
+                    "latency_ms": res.latency_ms,
+                    "attempts": res.attempts,
+                    "selected_chain": res.selected_chain,
+                    "tokens": res.tokens,
+                    "usage": res.usage,
+                },
                 "context": res.context,
                 "task_id": res.task_id,
                 "provider_hint": task.provider_hint,
             }
             if _trace_should_log(mode, reply_dict):
-                log("info", "roaudter.trace", "route_summary", **reply_dict)
+                _emit("info", "roaudter.trace", "route_summary", **reply_dict)
 
+
+        # Observability: reply delivered back to comm-agent layer
+        ctx = res.context if isinstance(res.context, dict) else {}
+        _emit(
+            "info",
+            "roaudter.deliver",
+            "deliver",
+            recipient=task.agent,
+            status=res.status,
+            provider_used=res.provider_used,
+            latency_ms=res.latency_ms,
+            attempts=res.attempts,
+            task_id=res.task_id,
+            trace_id=ctx.get("trace_id"),
+            parent_task_id=ctx.get("parent_task_id"),
+            span_id=ctx.get("span_id"),
+        )
 
         return {
             "task_id": res.task_id,
