@@ -8,6 +8,7 @@ from roaudter_agent.contracts import TaskEnvelope, ResultEnvelope
 from roaudter_agent.health import HealthMonitor
 from roaudter_agent.policy import RouterPolicy
 from roaudter_agent.providers.base import ProviderError, ProviderState
+from lam_logging import log as lam_log
 
 
 @dataclass(slots=True)
@@ -28,6 +29,21 @@ class RouterAgent:
 
     def route(self, task: TaskEnvelope) -> ResultEnvelope:
         start = time.time()
+
+        # Observability: routing start (filtered by LAM_LOG_LEVEL/LAM_LOG_EVENTS)
+        ctx = task.context or (task.payload.get("context") if isinstance(task.payload, dict) else None)
+        if not isinstance(ctx, dict):
+            ctx = {}
+        lam_log(
+            "info",
+            "roaudter.route",
+            "route",
+            intent=task.intent,
+            task_id=task.task_id,
+            trace_id=ctx.get("trace_id"),
+            parent_task_id=ctx.get("parent_task_id"),
+            span_id=ctx.get("span_id"),
+        )
 
         # health filter with TTL/cooldown
         healthy_providers = [p for p in self.providers if p.healthy and self.health.is_healthy(p)]
@@ -66,6 +82,17 @@ class RouterAgent:
                                 tokens = pt + ct
 
                     latency_ms = int((time.time() - start) * 1000)
+                    lam_log(
+                        "info",
+                        "roaudter.result",
+                        "ok",
+                        status="ok",
+                        provider_used=p.adapter.name,
+                        latency_ms=latency_ms,
+                        attempts=attempts,
+                        task_id=task.task_id,
+                        trace_id=ctx.get("trace_id"),
+                    )
                     return ResultEnvelope(
                         task_id=task.task_id,
                         context=(task.context or task.payload.get("context")),
@@ -114,6 +141,20 @@ class RouterAgent:
             continue
 
         latency_ms = int((time.time() - start) * 1000)
+        ctx = task.context or (task.payload.get("context") if isinstance(task.payload, dict) else None)
+        if not isinstance(ctx, dict):
+            ctx = {}
+        lam_log(
+            "info",
+            "roaudter.result",
+            "error",
+            status="error",
+            provider_used=None,
+            latency_ms=latency_ms,
+            attempts=attempts,
+            task_id=task.task_id,
+            trace_id=ctx.get("trace_id"),
+        )
         return ResultEnvelope(
             task_id=task.task_id,
             context=(task.context or task.payload.get("context")),
