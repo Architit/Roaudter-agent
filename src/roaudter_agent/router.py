@@ -33,6 +33,10 @@ class RouterAgent:
         healthy_providers = [p for p in self.providers if p.healthy and self.health.is_healthy(p)]
         chain = self.policy.select_chain(task, healthy_providers)
 
+        selected_chain = [ps.adapter.name for ps in chain]
+        attempts = 0
+        errors: list[dict] = []
+
         last_err: Optional[dict] = None
 
         for p in chain:
@@ -40,6 +44,7 @@ class RouterAgent:
 
             while True:
                 try:
+                    attempts += 1
                     out = p.adapter.generate(task)
 
                     # unified usage/tokens: lift provider-native usage to envelope level
@@ -63,9 +68,13 @@ class RouterAgent:
                     latency_ms = int((time.time() - start) * 1000)
                     return ResultEnvelope(
                         task_id=task.task_id,
+                        context=(task.context or task.payload.get("context")),
                         status="ok",
                         provider_used=p.adapter.name,
                         latency_ms=latency_ms,
+                        attempts=attempts,
+                        selected_chain=selected_chain,
+                        errors=errors,
                         tokens=tokens,
                         usage=usage,
                         result=out,
@@ -73,6 +82,7 @@ class RouterAgent:
 
                 except ProviderError as e:
                     last_err = e.to_dict(provider=p.adapter.name)
+                    errors.append(last_err)
 
                     # retry only if explicitly retryable AND status is transient
                     status = e.http_status
@@ -106,9 +116,13 @@ class RouterAgent:
         latency_ms = int((time.time() - start) * 1000)
         return ResultEnvelope(
             task_id=task.task_id,
+            context=(task.context or task.payload.get("context")),
             status="error",
             provider_used=None,
             latency_ms=latency_ms,
+            attempts=attempts,
+            selected_chain=selected_chain,
+            errors=errors,
             error=last_err or {
                 "provider": None,
                 "code": "no_healthy_providers",
