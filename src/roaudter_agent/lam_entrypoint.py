@@ -97,6 +97,8 @@ class RoaudterComAgent:
             "errors": res.errors,
             "tokens": res.tokens,
             "usage": res.usage,
+            "context": payload.get("context"),
+            "taskarid": payload.get("taskarid"),
             "result": res.result,
             "error": res.error,
         }
