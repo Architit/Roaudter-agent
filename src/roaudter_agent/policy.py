@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from roaudter_agent.contracts import TaskEnvelope
 from roaudter_agent.providers.base import ProviderState
@@ -14,15 +14,35 @@ def _requested_model(task: TaskEnvelope) -> str | None:
     )
 
 
+def _hint(task: TaskEnvelope) -> Optional[str]:
+    # allow hint to come either from TaskEnvelope or payload
+    return (task.provider_hint or task.payload.get("provider_hint") or "").strip().lower() or None
+
+
+PROFILE_CHAINS: dict[str, list[str]] = {
+    # strict local: never use paid APIs
+    "local_only": ["ollama"],
+
+    # cheap: start local, then generally low-cost, then others
+    "cheap": ["ollama", "gemini", "openai", "claude", "grok", "deepseek", "ollama_cloud"],
+
+    # best: prioritize higher quality (subjective, but practical default)
+    "best": ["claude", "openai", "gemini", "grok", "deepseek", "ollama", "ollama_cloud"],
+
+    # fast: prioritize low-latency models (default assumptions)
+    "fast": ["gemini", "openai", "ollama", "claude", "grok", "deepseek", "ollama_cloud"],
+}
+
+
 @dataclass(slots=True)
 class RouterPolicy:
     """
-    Policy v2:
-    - Generic (tests can use arbitrary provider names)
-    - provider_hint first
-    - if model endswith ':cloud' => prefer ollama_cloud then ollama
-    - otherwise preference by intent/priority (extend later)
-    NOTE: Health filtering is done outside (HealthMonitor); policy does NOT call healthcheck.
+    Policy v2 + profiles:
+    - provider_hint can be:
+        - exact provider name (e.g., "openai")
+        - profile name: local_only/cheap/best/fast
+    - model=:cloud => prefer ollama_cloud then ollama (but profiles can override via order)
+    - health filtering happens outside (HealthMonitor)
     """
     default_chain: List[str]
 
@@ -33,16 +53,21 @@ class RouterPolicy:
 
         chain: List[str] = []
 
-        # 1) explicit hint first
-        if task.provider_hint:
-            chain.append(task.provider_hint)
+        # 1) hint/profile first
+        hint = _hint(task)
+        if hint:
+            if hint in PROFILE_CHAINS:
+                chain += PROFILE_CHAINS[hint]
+            else:
+                # treat as explicit provider name
+                chain.append(hint)
 
         # 2) model-driven ordering (cloud request -> cloud then local)
         model = _requested_model(task)
         if model and str(model).endswith(":cloud"):
             chain += ["ollama_cloud", "ollama"]
 
-        # 3) intent/priority heuristics (starter rules; can evolve)
+        # 3) intent heuristic (light touch; profiles/hints come first anyway)
         intent = (task.intent or "").lower()
         if intent in {"code", "coding", "patch"}:
             chain += ["openai", "ollama"]
