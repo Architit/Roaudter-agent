@@ -19,6 +19,22 @@ def _emit(level: str, event: str, msg: str, **fields: Any) -> None:
         print(f"[{event}] level={level} msg={msg} fields={fields}")
 
 
+def _set_ctx_best_effort(ctx: Any) -> None:
+    """Best-effort: if running inside LAM, populate lam_logging ContextVar."""
+    if not isinstance(ctx, dict) or not ctx:
+        return
+    try:
+        from lam_logging import set_context  # type: ignore
+        set_context(
+            trace_id=ctx.get("trace_id"),
+            task_id=ctx.get("task_id"),
+            parent_task_id=ctx.get("parent_task_id"),
+            span_id=ctx.get("span_id"),
+        )
+    except Exception:
+        return
+
+
 class RoaudterComAgent:
     """
     LAM/comm-agent compatibility layer.
@@ -29,6 +45,7 @@ class RoaudterComAgent:
         self.router = build_default_router()
 
     def answer(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        _set_ctx_best_effort(payload.get("context"))
         task = TaskEnvelope(
             task_id=payload.get("task_id", "t1"),
             agent=payload.get("agent", "comm-agent"),
