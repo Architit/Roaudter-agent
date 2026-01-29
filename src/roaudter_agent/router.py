@@ -8,7 +8,17 @@ from roaudter_agent.contracts import TaskEnvelope, ResultEnvelope
 from roaudter_agent.health import HealthMonitor
 from roaudter_agent.policy import RouterPolicy
 from roaudter_agent.providers.base import ProviderError, ProviderState
-from lam_logging import log as lam_log
+
+
+def _emit(level: str, event: str, msg: str, **fields) -> None:
+    """Best-effort structured logging.
+    Uses LAM's lam_logging if available; otherwise no-ops (keeps noise minimal).
+    """
+    try:
+        from lam_logging import log  # type: ignore
+        log(level, event, msg, **fields)
+    except Exception:
+        return
 
 
 @dataclass(slots=True)
@@ -34,7 +44,7 @@ class RouterAgent:
         ctx = task.context or (task.payload.get("context") if isinstance(task.payload, dict) else None)
         if not isinstance(ctx, dict):
             ctx = {}
-        lam_log(
+        _emit(
             "info",
             "roaudter.route",
             "route",
@@ -82,7 +92,7 @@ class RouterAgent:
                                 tokens = pt + ct
 
                     latency_ms = int((time.time() - start) * 1000)
-                    lam_log(
+                    _emit(
                         "info",
                         "roaudter.result",
                         "ok",
@@ -144,7 +154,7 @@ class RouterAgent:
         ctx = task.context or (task.payload.get("context") if isinstance(task.payload, dict) else None)
         if not isinstance(ctx, dict):
             ctx = {}
-        lam_log(
+        _emit(
             "info",
             "roaudter.result",
             "error",
