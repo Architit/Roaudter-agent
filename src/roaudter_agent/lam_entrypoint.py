@@ -35,6 +35,7 @@ class RoaudterComAgent:
             intent=payload.get("intent", "chat"),
             priority=payload.get("priority", 0),
             payload=payload.get("payload", {"msg": payload.get("msg", "")}),
+            context=payload.get("context"),
             constraints=payload.get("constraints", {}),
             provider_hint=payload.get("provider_hint"),
         )
@@ -42,50 +43,47 @@ class RoaudterComAgent:
         res = self.router.route(task)
 
         # optional runtime trace: export ROAUDTER_TRACE=1
+        
+        def _trace_should_log(mode: str, reply: dict) -> bool:
+            mode = (mode or "nonok").lower()
+            status = res.status
+            attempts = int(res.attempts or 0)
+            errors = res.errors or []
+            if mode == "all":
+                return True
+            if mode == "errors":
+                return bool(errors)
+            if mode == "retries":
+                return attempts > 1
+            # default + "nonok"
+            return status != "ok"
+
         if os.getenv("ROAUDTER_TRACE") == "1":
             mode = os.getenv("ROAUDTER_TRACE_ONLY", "nonok").lower()
-            errors_n = len(res.errors or [])
-            attempts_n = (res.attempts or 0)
+            reply_dict = {
+                "status": res.status,
+                "provider_used": res.provider_used,
+                "latency_ms": res.latency_ms,
+                "attempts": res.attempts,
+                "selected_chain": res.selected_chain,
+                "errors": res.errors,
+                "tokens": res.tokens,
+                "usage": res.usage,
+            "metrics": {
+                "provider_used": res.provider_used,
+                "latency_ms": res.latency_ms,
+                "attempts": res.attempts,
+                "selected_chain": res.selected_chain,
+                "tokens": res.tokens,
+                "usage": res.usage,
+            },
+                "context": res.context,
+                "task_id": res.task_id,
+                "provider_hint": task.provider_hint,
+            }
+            if _trace_should_log(mode, reply_dict):
+                log("info", "roaudter.trace", "route_summary", **reply_dict)
 
-            if mode == "errors":
-                should_print = errors_n > 0
-            elif mode == "retries":
-                should_print = attempts_n > 1
-            elif mode == "nonok":
-                should_print = (res.status != "ok") or errors_n > 0 or attempts_n > 1
-            else:  # "all"
-                should_print = True
-
-            if should_print:
-                last = (res.errors[-1] if res.errors else None)
-                last_s = None
-                if isinstance(last, dict):
-                    last_s = {
-                        "provider": last.get("provider"),
-                        "code": last.get("code"),
-                        "http_status": last.get("http_status"),
-                    }
-
-                # map to levels (noise control)
-                level = "info"
-                if res.status != "ok":
-                    level = "error"
-                elif errors_n > 0 or attempts_n > 1:
-                    level = "warn"
-
-                _emit(
-                    level,
-                    "roaudter",
-                    "route",
-                    status=res.status,
-                    provider=res.provider_used,
-                    attempts=attempts_n,
-                    intent=task.intent,
-                    hint=task.provider_hint,
-                    chain=res.selected_chain,
-                    errors=errors_n,
-                    last_err=last_s,
-                )
 
         return {
             "task_id": res.task_id,
@@ -97,7 +95,15 @@ class RoaudterComAgent:
             "errors": res.errors,
             "tokens": res.tokens,
             "usage": res.usage,
-            "context": payload.get("context"),
+            "metrics": {
+                "provider_used": res.provider_used,
+                "latency_ms": res.latency_ms,
+                "attempts": res.attempts,
+                "selected_chain": res.selected_chain,
+                "tokens": res.tokens,
+                "usage": res.usage,
+            },
+            "context": res.context,
             "taskarid": payload.get("taskarid"),
             "result": res.result,
             "error": res.error,
