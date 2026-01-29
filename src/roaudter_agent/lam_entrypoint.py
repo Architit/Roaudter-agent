@@ -30,6 +30,31 @@ class RoaudterComAgent:
 
         # optional runtime trace: export ROAUDTER_TRACE=1
         if os.getenv("ROAUDTER_TRACE") == "1":
+            mode = os.getenv("ROAUDTER_TRACE_ONLY", "nonok").lower()
+            errors_n = len(res.errors or [])
+            should_print = True
+            if mode == "errors":
+                should_print = errors_n > 0
+            elif mode == "retries":
+                should_print = (res.attempts or 0) > 1
+            elif mode == "nonok":
+                should_print = (res.status != "ok") or errors_n > 0 or (res.attempts or 0) > 1
+            elif mode == "all":
+                should_print = True
+            if not should_print:
+                return {
+                    "task_id": res.task_id,
+                    "status": res.status,
+                    "provider_used": res.provider_used,
+                    "latency_ms": res.latency_ms,
+                    "attempts": res.attempts,
+                    "selected_chain": res.selected_chain,
+                    "errors": res.errors,
+                    "tokens": res.tokens,
+                    "usage": res.usage,
+                    "result": res.result,
+                    "error": res.error,
+                }
             last = (res.errors[-1] if res.errors else None)
             last_s = None
             if isinstance(last, dict):
