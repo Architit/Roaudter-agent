@@ -106,6 +106,14 @@ class RouterAgent:
                     return ResultEnvelope(
                         task_id=task.task_id,
                         context=(task.context or task.payload.get("context")),
+                        metrics={
+                            "provider_used": p.adapter.name,
+                            "latency_ms": latency_ms,
+                            "attempts": attempts,
+                            "selected_chain": selected_chain,
+                            "tokens": tokens,
+                            "usage": usage,
+                        },
                         status="ok",
                         provider_used=p.adapter.name,
                         latency_ms=latency_ms,
@@ -168,6 +176,14 @@ class RouterAgent:
         return ResultEnvelope(
             task_id=task.task_id,
             context=(task.context or task.payload.get("context")),
+            metrics={
+                "provider_used": None,
+                "latency_ms": latency_ms,
+                "attempts": attempts,
+                "selected_chain": selected_chain,
+                "tokens": None,
+                "usage": None,
+            },
             status="error",
             provider_used=None,
             latency_ms=latency_ms,
