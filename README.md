@@ -2,6 +2,9 @@
 
 Minimal skeleton for LAM multi-provider LLM Router Agent.
 
+## Protocol
+See [INTERACTION_PROTOCOL.md](INTERACTION_PROTOCOL.md).
+
 ## Dev / Tests
 
 - Install (dev + tests):
