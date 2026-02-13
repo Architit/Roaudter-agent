@@ -1,25 +1,38 @@
 # WORKFLOW SNAPSHOT (STATE)
+
+## Identity
 repo: Roaudter-agent
 branch: master
-timestamp: 2026-02-12T21:08:09Z
+timestamp: 2026-02-13T08:30:00Z
 
-phase: Phase 5.A — Repo Rollout Analysis (adoption)
+## Current pointer
+phase: Governance baseline
+stage: artifact seeding complete; pending commit/push
 protocol_scale: 0
 protocol_semantic_en: neutral
 
-recent_commits:
-- 4aa49bf obs: set lam_logging context from payload in RoaudterComAgent
-- f95f964 obs: make lam_logging optional in router logs
-- 74bdda7 obs: add roaudter.deliver log and fix trace emitter
-- 0486dcc obs: add roaudter.route and roaudter.result logs
-- 777fc87 Standardize context in envelopes + add roundtrip test
-- 70a8d11 Add metrics to RoaudterComAgent response envelope
-- 4ce6abf lam: echo context + taskarid in RoaudterComAgent replies
-- a099003 trace: emit via lam_logging when available (with filters) + safe fallback
+## Recent commits
+- bd16495 governance(snapshot): add workflow/system state baseline artifacts
+- 9ebf3fd Merge pull request #1 from Architit/chore/interaction-protocol
+- a07efb6 docs: clarify protocol canon (DevKit SoT)
+- 5ba5f2f docs: link interaction protocol from README
+- 691c988 docs: add interaction protocol
+- 2abdfbb chore: repo hygiene (ignore build artifacts)
+- f678450 docs: add dev/test quickstart + smoke-test note
+- 18e3573 chore: add test extra (pytest)
 
-git_status:
-## master...origin/master [behind 7]
+## Git status
+## master...origin/master
+ M INTERACTION_PROTOCOL.md
+ M SYSTEM_STATE.md
+ M SYSTEM_STATE_CONTRACT.md
+ M WORKFLOW_SNAPSHOT_CONTRACT.md
+ M WORKFLOW_SNAPSHOT_STATE.md
+?? DEV_LOGS.md
+?? ROADMAP.md
 
-references:
-- WORKFLOW_SNAPSHOT_CONTRACT.md
-- SYSTEM_STATE_CONTRACT.md
+## Governance Sync
+- 2026-02-13 08:30 UTC — restart-semantics-unified-v1
+- branch: master
+- git_status: ## master...origin/master
+- NEW_CHAT_INIT_MESSAGE: cld rstrt NEW
