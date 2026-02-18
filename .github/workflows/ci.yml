@@ -6,32 +6,16 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.LAM_SUBMODULE_ACCESS_TOKEN || github.token }}
-      - name: Sync submodules
-        run: |
-          git submodule sync --recursive
-          git submodule update --init --recursive
-      - name: Verify required submodules
-        run: |
-          git submodule status --recursive | tee /tmp/sub_recursive.txt
-          git submodule status agents/test-agent | tee /tmp/sub_test.txt
-          git submodule status agents/operator-agent | tee /tmp/sub_operator.txt
-          ! grep -qE '^-' /tmp/sub_recursive.txt
-          ! grep -qE '^-' /tmp/sub_test.txt
-          ! grep -qE '^-' /tmp/sub_operator.txt
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-      - name: Install deps
-        run: |
-          python -m pip install -U pip
-          pip install -e ".[test]"
-      - name: Run tests
-        run: |
-          PYTHONPATH=src python -m pytest -q
+    uses: ./.github/workflows/submodule-gate.yml
+    with:
+      python_version: "3.12"
+      required_submodules: |
+        agents/test-agent
+        agents/operator-agent
+      install_command: |
+        python -m pip install -U pip
+        pip install -e "./"
+        pip install -e ".[test]"
+      test_command: |
+        PYTHONPATH=src python -m pytest -q
+    secrets: inherit
