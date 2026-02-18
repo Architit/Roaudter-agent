@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    uses: Architit/RADRILONIUMA-PROJECT/.github/workflows/submodule-gate.yml@main
+    uses: Architit/RADRILONIUMA-PROJECT/.github/workflows/submodule-gate.yml@submodule-gate-v1.0.0
     with:
       python_version: "3.12"
       submodule_paths: |
