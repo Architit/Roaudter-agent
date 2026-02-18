@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import os
 import time
 import urllib.request
 import urllib.error
@@ -16,7 +17,13 @@ class OllamaAdapter:
     base_url: str = "http://172.31.80.1:11434"
     default_model: str = "llama3.2:1b"  # локальная по умолчанию
 
+    @staticmethod
+    def _offline_test_mode() -> bool:
+        return os.getenv("ROAUDTER_OFFLINE_TEST_MODE", "").strip() == "1"
+
     def healthcheck(self) -> bool:
+        if self._offline_test_mode():
+            return True
         try:
             with urllib.request.urlopen(f"{self.base_url}/api/tags", timeout=2) as r:
                 return 200 <= r.status < 300
@@ -49,6 +56,16 @@ class OllamaAdapter:
             "messages": [{"role": "user", "content": msg}],
             "temperature": task.constraints.get("temperature", 0.2),
         }
+
+        if self._offline_test_mode():
+            return {
+                "provider": "ollama",
+                "model": model,
+                "latency_ms": 1,
+                "text": "pong",
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                "raw": {"mode": "offline_test"},
+            }
 
         req = urllib.request.Request(
             url=f"{self.base_url}/v1/chat/completions",

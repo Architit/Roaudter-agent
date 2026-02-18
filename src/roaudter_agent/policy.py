@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+import os
 from typing import Iterable, List, Optional
 
 from roaudter_agent.contracts import TaskEnvelope
@@ -17,11 +18,14 @@ def _requested_model(task: TaskEnvelope) -> str | None:
 def _parse_hint(task: TaskEnvelope) -> tuple[Optional[str], bool]:
     # allow hint to come either from TaskEnvelope or payload
     raw = (task.provider_hint or task.payload.get("provider_hint") or "").strip().lower()
-    if not raw:
-        return None, False
-    if raw.endswith("!"):
-        return raw[:-1], True
-    return raw, False
+    if raw:
+        if raw.endswith("!"):
+            return raw[:-1], True
+        return raw, False
+    runtime_hint = _runtime_profile_hint()
+    if runtime_hint:
+        return runtime_hint, False
+    return None, False
 
 
 PROFILE_CHAINS: dict[str, list[str]] = {
@@ -38,6 +42,20 @@ PROFILE_CHAINS: dict[str, list[str]] = {
     "fast": ["gemini", "openai", "ollama", "claude", "grok", "deepseek", "ollama_cloud"],
 }
 
+RUNTIME_PROFILE_ALIASES: dict[str, str] = {
+    "ci": "cheap",
+    "smoke": "local_only",
+    "full": "best",
+}
+
+
+def _runtime_profile_hint() -> Optional[str]:
+    raw = os.getenv("ROAUDTER_RUNTIME_PROFILE", "").strip().lower()
+    if not raw:
+        return None
+    mapped = RUNTIME_PROFILE_ALIASES.get(raw, raw)
+    return mapped if mapped in PROFILE_CHAINS else None
+
 
 @dataclass(slots=True)
 class RouterPolicy:
@@ -52,6 +70,17 @@ class RouterPolicy:
     """
     default_chain: List[str]
 
+    def inspect_hint(self, task: TaskEnvelope) -> tuple[Optional[str], bool, str]:
+        hint, strict = _parse_hint(task)
+        if hint is None:
+            return None, False, "none"
+        explicit = (task.provider_hint or task.payload.get("provider_hint") or "").strip()
+        if explicit:
+            return hint, strict, "explicit"
+        if hint in PROFILE_CHAINS:
+            return hint, strict, "runtime_profile"
+        return hint, strict, "runtime_profile"
+
     def select_chain(self, task: TaskEnvelope, providers: Iterable[ProviderState]) -> List[ProviderState]:
         available = list(providers)
         by_name = {p.adapter.name: p for p in available}
@@ -60,7 +89,7 @@ class RouterPolicy:
         chain: List[str] = []
 
         # 1) hint/profile first
-        hint, strict = _parse_hint(task)
+        hint, strict, _source = self.inspect_hint(task)
         if hint:
             if hint in PROFILE_CHAINS:
                 chain += PROFILE_CHAINS[hint]

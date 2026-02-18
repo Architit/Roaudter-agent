@@ -57,6 +57,7 @@ class RouterAgent:
 
         # health filter with TTL/cooldown
         healthy_providers = [p for p in self.providers if p.healthy and self.health.is_healthy(p)]
+        policy_hint, _policy_strict, policy_hint_source = self.policy.inspect_hint(task)
         chain = self.policy.select_chain(task, healthy_providers)
 
         selected_chain = [ps.adapter.name for ps in chain]
@@ -111,6 +112,8 @@ class RouterAgent:
                             "latency_ms": latency_ms,
                             "attempts": attempts,
                             "selected_chain": selected_chain,
+                            "policy_hint": policy_hint,
+                            "policy_hint_source": policy_hint_source,
                             "tokens": tokens,
                             "usage": usage,
                         },
@@ -181,6 +184,8 @@ class RouterAgent:
                 "latency_ms": latency_ms,
                 "attempts": attempts,
                 "selected_chain": selected_chain,
+                "policy_hint": policy_hint,
+                "policy_hint_source": policy_hint_source,
                 "tokens": None,
                 "usage": None,
             },

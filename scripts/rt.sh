@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LAM_DIR="/mnt/c/Users/lkise/OneDrive/Documenten/GitHub/LAM"
-RO_DIR="/home/architit/work/Roaudter-agent"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORK_ROOT="${ECO_WORK_ROOT:-$(cd "$SCRIPT_DIR/../../../../.." && pwd)}"
+LAM_DIR="${LAM_DIR:-$WORK_ROOT/LAM}"
+RO_DIR="${RO_DIR:-$WORK_ROOT/Roaudter-agent}"
 
 # ensure editable install is active (no-op if already)
 cd "$RO_DIR"
