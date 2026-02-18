@@ -6,10 +6,10 @@ on:
 
 jobs:
   test:
-    uses: ./.github/workflows/submodule-gate.yml
+    uses: Architit/RADRILONIUMA-PROJECT/.github/workflows/submodule-gate.yml@main
     with:
       python_version: "3.12"
-      required_submodules: |
+      submodule_paths: |
         agents/test-agent
         agents/operator-agent
       install_command: |
