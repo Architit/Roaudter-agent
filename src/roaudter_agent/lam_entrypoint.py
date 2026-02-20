@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 import os
 import uuid
 
-from roaudter_agent import TaskEnvelope, build_default_router
+from .contracts import TaskEnvelope
+from .registry import build_default_router
 
 
 def _emit(level: str, event: str, msg: str, **fields: Any) -> None:

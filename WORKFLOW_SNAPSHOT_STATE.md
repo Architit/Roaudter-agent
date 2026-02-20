@@ -3,44 +3,48 @@
 ## Identity
 repo: Roaudter-agent
 branch: master
-timestamp: 2026-02-13T07:24:00Z
+timestamp: 2026-02-20T10:40:00Z
 
 ## Current pointer
-phase: Governance baseline
-stage: artifact seeding complete; pending commit/push
-protocol_scale: 0
-protocol_semantic_en: neutral
+phase: Phase 8.0 — New Version Birth Orchestration
+stage: Release Launch Gate Preparation
+protocol_scale: 1
+protocol_semantic_en: aligned
+goal:
+- sync governance baseline with SoT
+- verify integrity of core artifacts
+- prepare for release launch gate
+constraints:
+- contracts-first
+- observability-first
+- derivation-only
+- NO runtime logic
+- NO execution-path impact
+
+## Verification
+- Phase 8.0 selected with explicit goal and DoD.
+- Heartbeat is GREEN (SoT confirmed).
+- Protocol Drift Gate PASSED (INTERACTION_PROTOCOL.md synced).
+- Working tree HEALED.
 
 ## Recent commits
-- bd16495 governance(snapshot): add workflow/system state baseline artifacts
-- 9ebf3fd Merge pull request #1 from Architit/chore/interaction-protocol
-- a07efb6 docs: clarify protocol canon (DevKit SoT)
-- 5ba5f2f docs: link interaction protocol from README
-- 691c988 docs: add interaction protocol
-- 2abdfbb chore: repo hygiene (ignore build artifacts)
-- f678450 docs: add dev/test quickstart + smoke-test note
-- 18e3573 chore: add test extra (pytest)
+- 82082c1 ci: pin RADR submodule-gate to v1.0.0
+- f31860d ci: consume submodule-gate from RADR SoT
+- d6a7e75 ci: switch to reusable submodule-gate workflow
+- 541f6ee ci: enforce required submodule readiness checks
+- 453e602 chore(submodules): add default test-agent/operator-agent contract
 
 ## Git status
 ## master...origin/master
+ M DEV_LOGS.md
  M INTERACTION_PROTOCOL.md
- M SYSTEM_STATE.md
- M SYSTEM_STATE_CONTRACT.md
- M WORKFLOW_SNAPSHOT_CONTRACT.md
- M WORKFLOW_SNAPSHOT_STATE.md
-?? DEV_LOGS.md
-?? ROADMAP.md
+ M README.md
+ M ROADMAP.md
 
-## Governance Sync
-- 2026-02-13 08:30 UTC — restart-semantics-unified-v1
-- branch: master
-- git_status: ## master...origin/master
-- NEW_CHAT_INIT_MESSAGE: cld rstrt NEW
-
-## Governance Sync
-- 2026-02-13 07:24 UTC — protocol-sync-header-v1
-- protocol_source: RADRILONIUMA-PROJECT
-- protocol_version: v1.0.0
-- last_sync_commit: 7eadfe9
-- branch: master
-- git_status: ## master...origin/master
+## References
+- INTERACTION_PROTOCOL.md
+- RADRILONIUMA-PROJECT/GOV_STATUS.md
+- ROADMAP.md
+- DEV_LOGS.md
+- WORKFLOW_SNAPSHOT_CONTRACT.md
+- WORKFLOW_SNAPSHOT_STATE.md
