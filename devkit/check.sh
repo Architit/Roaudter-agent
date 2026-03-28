@@ -12,8 +12,16 @@ if [[ ! -x "$PY" ]]; then
 fi
 
 export TMPDIR=/tmp TEMP=/tmp TMP=/tmp
+if [[ -f "scripts/global/validating_eye.py" ]]; then
+  "$PY" scripts/global/validating_eye.py
+elif [[ -f "../RADRILONIUMA/scripts/global/validating_eye.py" ]]; then
+  "$PY" ../RADRILONIUMA/scripts/global/validating_eye.py
+fi
 
-if [[ -f "scripts/lam_env.sh" ]]; then
+
+if [[ -f "scripts/local/lam_env.sh" ]]; then
+  bash scripts/local/lam_env.sh "$PY" -m pytest -q "${@:-}"
+elif [[ -f "scripts/lam_env.sh" ]]; then
   bash scripts/lam_env.sh "$PY" -m pytest -q "${@:-}"
 else
   "$PY" -m pytest -q "${@:-}"

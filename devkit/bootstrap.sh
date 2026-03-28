@@ -8,6 +8,16 @@ if [[ ! -d ".venv" ]]; then
   python3 -m venv .venv
 fi
 
+# ONTOLOGICAL SAFETY CHECK (ANGEL GUARD)
+if [[ -f "IDENTITY.md" ]]; then
+  ID=$(grep "System ID:" IDENTITY.md | cut -d'#' -f3 | xargs)
+  echo "[ANGEL GUARD] Fixating Identity: $ID"
+else
+  echo "[ANGEL GUARD] ERROR: IDENTITY.md not fixated. HALTING."
+  exit 1
+fi
+
+
 PY="$REPO/.venv/bin/python"
 PIP="$REPO/.venv/bin/pip"
 
