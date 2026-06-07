@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "providers": {
+    "local": {
+      "consecutive_failures": 0,
+      "open_until_epoch": 0
+    }
+  }
+}

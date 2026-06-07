@@ -4,15 +4,32 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-export PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+if [[ "${1:-}" == "--env-requirements" ]]; then
+  python3 scripts/ubuntu_env_requirements.py --install-plan
+  exit $?
+fi
 
 export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:--p no:cacheprovider}"
 
-PYTEST_BIN="${PYTEST_BIN:-$ROOT_DIR/.venv/bin/pytest}"
+PYTEST_BIN=""
+for candidate in \
+  "$ROOT_DIR/.venv/bin/pytest" \
+  "$ROOT_DIR/venv/bin/pytest" \
+  "$ROOT_DIR/../.venv/bin/pytest" \
+  "${ECO_PYTEST_BIN:-}"
+do
+  if [[ -n "$candidate" && -x "$candidate" ]]; then
+    PYTEST_BIN="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$PYTEST_BIN" ]] && command -v pytest >/dev/null 2>&1; then
+  PYTEST_BIN="$(command -v pytest)"
+fi
 
 if [[ ! -x "$PYTEST_BIN" ]]; then
-  echo "[test-entrypoint] pytest not found at $PYTEST_BIN"
-  echo "[test-entrypoint] create env: python -m venv .venv && .venv/bin/pip install -e '.[test]'"
+  echo "[test-entrypoint] pytest unavailable"
   exit 2
 fi
 
@@ -37,11 +54,21 @@ case "${1:---all}" in
   --unit-only)
     run_pytest_allow_empty -q tests -m "not integration"
     ;;
+  --governance)
+    python3 scripts/task_spec_validator.py --fail-fast --file devkit/task_spec_template.yaml
+    "$PYTEST_BIN" -q tests -k governance
+    ;;
+  --patch-runtime)
+    "$PYTEST_BIN" -q tests/test_patch_runtime_governance.py
+    ;;
+  --preflight)
+    "$PYTEST_BIN" -q tests -k preflight
+    ;;
   --ci)
     "$PYTEST_BIN" -q tests --maxfail=1
     ;;
   *)
-    echo "usage: $0 [--all|--unit-only|--integration|--ci]"
+    echo "usage: $0 [--all|--unit-only|--integration|--governance|--patch-runtime|--preflight|--env-requirements|--ci]"
     exit 2
     ;;
 esac
