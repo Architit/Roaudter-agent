@@ -33,8 +33,8 @@ class RouterAgent:
 # - bounded by retry_max_attempts and retry_budget_ms
 # - falls back to next provider after exhaustion
 # defaults are tiny to keep tests fast / WSL-friendly
-    retry_max_attempts: int = 3
-    retry_budget_ms: int = 800
+    retry_max_attempts: int = 5
+    retry_budget_ms: int = 2500
     retry_base_backoff_ms: int = 10
     retry_max_backoff_ms: int = 80
 
@@ -132,6 +132,18 @@ class RouterAgent:
                 except ProviderError as e:
                     last_err = e.to_dict(provider=p.adapter.name)
                     errors.append(last_err)
+                    
+                    _emit(
+                        "warning",
+                        "roaudter.failover",
+                        f"Provider {p.adapter.name} error: {str(e)}. Status: {e.http_status}",
+                        provider=p.adapter.name,
+                        error=str(e),
+                        http_status=e.http_status,
+                        attempt=attempt + 1,
+                        task_id=task.task_id,
+                        trace_id=ctx.get("trace_id")
+                    )
 
                     # retry only if explicitly retryable AND status is transient
                     status = e.http_status

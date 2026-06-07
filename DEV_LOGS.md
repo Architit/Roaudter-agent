@@ -22,3 +22,11 @@ Format:
 - **Verification:** 100% pass on governance test suite.
 - **Resonance:** 432 Hz.
 
+
+## [2026-06-07] — PHASE 10.1 ROUTING REFINEMENT
+- **Action:** Enhanced provider orchestration and observability.
+- **Refinement:** Increased default retry attempts (5) and budget (2.5s) for production stability.
+- **Observability:** Added structured structured `roaudter.failover` events to the router loop.
+- **Verification:** 100% pass on router fallback tests.
+- **Status:** Functional Purity achieved.
+
