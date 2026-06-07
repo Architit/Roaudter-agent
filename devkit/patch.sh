@@ -42,11 +42,26 @@ emit_status() {
   local error_code="${2:-NONE}"
   echo "status=$status"
   echo "error_code=$error_code"
+  log_event "PATCH_STATUS" "status=$status error_code=$error_code"
 }
 
 emit_trace() {
   local apply_result="$1"
   echo "trace: task_id=$TASK_ID spec_hash=$SPEC_HASH artifact_hash=$ARTIFACT_HASH apply_result=$apply_result commit_ref=$COMMIT_REF"
+  log_event "PATCH_TRACE" "task_id=$TASK_ID spec_hash=$SPEC_HASH artifact_hash=$ARTIFACT_HASH apply_result=$apply_result commit_ref=$COMMIT_REF"
+}
+
+log_event() {
+  local event_type="$1"
+  local msg="$2"
+  local ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  local system_id="$(grep -A 1 "System ID" IDENTITY.md | tail -n 1 | xargs || echo "unknown")"
+  
+  mkdir -p .gateway
+  # Escaping double quotes for JSON
+  local safe_msg="${msg//\"/\\\"}"
+  printf '{"ts_utc":"%s","system_id":"%s","event":"%s","task_id":"%s","msg":"%s"}\n' \
+    "$ts" "$system_id" "$event_type" "$TASK_ID" "$safe_msg" >> .gateway/telemetry_events.jsonl
 }
 
 die_status() {

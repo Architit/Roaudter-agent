@@ -2,6 +2,17 @@
 import subprocess
 import datetime
 import sys
+from pathlib import Path
+
+# Add global scripts to path
+GLOBAL_SCRIPTS = Path(__file__).resolve().parents[1] / "global"
+if GLOBAL_SCRIPTS.exists() and str(GLOBAL_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(GLOBAL_SCRIPTS))
+
+try:
+    from telemetry_shipper import ship_telemetry
+except ImportError:
+    ship_telemetry = None
 
 DOCUMENT_ID = "1as43exoncCdD4n6MttSLTm2mAszeAxrpeuuSYZ3selA"
 
@@ -27,6 +38,13 @@ def get_mcp_status(name):
         return "ERROR"
 
 def update_telemetry():
+    # Ship buffered events first
+    if ship_telemetry:
+        try:
+            ship_telemetry()
+        except Exception as e:
+            print(f"[TELEMETRY] Shipper failed: {e}")
+
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M")
     
     rows = [
