@@ -1,3 +1,4 @@
+# Copyright (c) 2026-06-07 RADRILONIUMA / TRIANIUMA Kingdom. All rights reserved.
 from roaudter_agent.contracts import ResultEnvelope
 from roaudter_agent.lam_entrypoint import RoaudterComAgent
 

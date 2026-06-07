@@ -1,3 +1,4 @@
+# Copyright (c) 2026-06-07 RADRILONIUMA / TRIANIUMA Kingdom. All rights reserved.
 from roaudter_agent import build_default_router
 from roaudter_agent.contracts import TaskEnvelope
 
